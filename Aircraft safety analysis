@@ -1,0 +1,42 @@
+# data
+year <- seq(2009, 2018)
+y <- c(19, 24, 22, 15, 14, 12, 4, 8, 6, 11)
+n <- length(y)
+
+# re-scale years
+x <- year - mean(year)
+
+ysum <- sum(y)
+xysum <- sum(x*y)
+
+
+
+llik <- function(betas, ysum, xysum, x){
+  ll <- -sum(exp(betas[1]+betas[2]*x)) + ysum*betas[1] + xysum*betas[2]
+  return( ll )
+}
+
+llik_grad <- function(betas, ysum, xysum, x){
+  gr_b0 <- -sum(exp(betas[1]+betas[2]*x)) + ysum
+  gr_b1 <- -sum(x*exp(betas[1]+betas[2]*x)) + xysum
+  return( c(gr_b0, gr_b1) )
+}
+
+betas_start <- c(0,0)
+mle <- optim(betas_start, llik, gr = llik_grad, ysum = ysum, xysum = xysum, x = x, 
+             method = "BFGS", control = list(fnscale = -1))
+
+beta_0 <- mle$par[1]
+beta_1 <- mle$par[2]
+
+mu_hat <- exp(beta_0 + beta_1*x)
+
+X <- rbind(1,x)
+MU <- cbind(mu_hat,mu_hat*x)
+EI <- X %*% MU# FILL IN OBSERVED INFORMATION (EXPECTED INFORMATION WITH mu_hat and data)
+
+COV <- solve(EI)# FILL IN TO GET APPROXIMATE COVARIANCE MATRIX FOR ESTIMATORS
+sqrt(COV) # yields SE's
+
+glm.out = glm(y ~ x, family = poisson)
+summary(glm.out)
